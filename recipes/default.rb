@@ -17,6 +17,8 @@
 # limitations under the License.
 #
 
+package "libssl-dev"
+
 include_recipe "build-essential"
 
 ossec_dir = "ossec-hids-#{node['ossec']['version']}"
@@ -72,7 +74,42 @@ when "arch"
   end
 end
 
-service "ossec" do
-  supports :status => true, :restart => true
-  action [:enable, :start]
+ossec_key = data_bag_item("ossec", "ssh")
+
+user "ossecd" do
+  comment "OSSEC Distributor"
+  shell "/bin/false"
+  system true
+  gid "ossec"
+  home node['ossec']['user']['dir']
 end
+
+directory "#{node['ossec']['user']['dir']}/.ssh" do
+  owner "root"
+  group "ossec"
+  mode 0750
+end
+
+#
+# install authorized_keys or id_rsa as needed
+#
+if node['ossec']['user']['install_type'] == "server"
+  template "#{node['ossec']['user']['dir']}/.ssh/authorized_keys" do
+    source "authorized_keys.erb"
+    owner "root"
+    group "ossec"
+    mode 0640
+    variables(:key => ossec_key['pubkey'])
+  end
+
+else
+  template "#{node['ossec']['user']['dir']}/.ssh/id_rsa" do
+    source "ssh_key.erb"
+    owner "root"
+    group "ossec"
+    mode 0600
+    variables(:key => ossec_key['privkey'])
+  end
+
+end
+
