@@ -42,6 +42,7 @@ default['ossec']['user']['binary_install'] = false
 default['ossec']['user']['agent_server_ip'] = nil
 default['ossec']['user']['enable_email'] = true
 default['ossec']['user']['email'] = "ossec@example.com"
+default['ossec']['user']['email_alert_level'] = 7
 default['ossec']['user']['smtp'] = "127.0.0.1"
 default['ossec']['user']['remote_syslog'] = false
 default['ossec']['user']['firewall_response'] = true
