@@ -24,6 +24,8 @@ node.save
 
 include_recipe "ossec"
 
+ossec_key = data_bag_item("ossec", "ssh")
+
 #
 # set up authorized_keys so that clients can ssh in to talk to ossec-authd
 #
@@ -42,7 +44,7 @@ execute "openssl genrsa -out /var/ossec/etc/sslmanager.key 2048" do
   not_if { File.exists? "/var/ossec/etc/sslmanager.key" }
 end
 
-execute "openssl req -new -x509 -key /var/ossec/etc/sslmanager.key -out /var/ossec/etc/sslmanager.cert -days 3650" do
+execute "openssl req -new -x509 -key /var/ossec/etc/sslmanager.key -out /var/ossec/etc/sslmanager.cert -days 3650 -subj /C=US/ST=CA/L=LA/O=ossec/CN=www.example.com" do
   not_if { File.exists? "/var/ossec/etc/sslmanager.cert" }
 end
 
