@@ -48,7 +48,7 @@ bash "register with ossec server" do
   cwd  "/var/ossec"
   code <<-EOH
     ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -N -T -L1515:127.0.0.1:1515 -i .ssh/id_rsa ossecd@#{node['ossec']['user']['agent_server_ip']} &
-    sleep 1
+    sleep 5
     bin/agent-auth -m 127.0.0.1 && pkill -f -- '-L1515:127.0.0.1:1515'
   EOH
 
