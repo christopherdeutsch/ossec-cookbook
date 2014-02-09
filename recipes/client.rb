@@ -19,12 +19,15 @@
 
 ossec_server = Array.new
 
-if node.run_list.roles.include?(node['ossec']['server_role'])
-  ossec_server << node['ipaddress']
-else
-  search(:node,"role:#{node['ossec']['server_role']}") do |n|
-    ossec_server << n['ipaddress']
-  end
+#
+# for backward comaptibility with server_role
+#
+if node['ossec']['server_role']
+  node.default['ossec']['server_search'] = "role:#{node['ossec']['server_role']}"
+end
+
+search(:node, node['ossec']['server_search']) do |n|
+  ossec_server << n['ipaddress']
 end
 
 node.set['ossec']['user']['install_type'] = "agent"
