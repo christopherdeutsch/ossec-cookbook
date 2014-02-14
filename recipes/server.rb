@@ -24,47 +24,37 @@ node.save
 
 include_recipe "ossec"
 
-agent_manager = "#{node['ossec']['user']['dir']}/bin/ossec-batch-manager.pl"
-
-ssh_hosts = Array.new
-
-search(:node, "ossec:[* TO *] NOT role:#{node['ossec']['server_role']}") do |n|
-
-  ssh_hosts << n['ipaddress'] if n['keys']
-
-  execute "#{agent_manager} -a --ip #{n['ipaddress']} -n #{n['fqdn'][0..31]}" do
-    not_if "grep '#{n['fqdn'][0..31]} #{n['ipaddress']}' #{node['ossec']['user']['dir']}/etc/client.keys"
-  end
-
-end
-
-template "/usr/local/bin/dist-ossec-keys.sh" do
-  source "dist-ossec-keys.sh.erb"
-  owner "root"
-  group "root"
-  mode 0755
-  variables(:ssh_hosts => ssh_hosts)
-  not_if { ssh_hosts.empty? }
-end
-
 ossec_key = data_bag_item("ossec", "ssh")
 
-directory "#{node['ossec']['user']['dir']}/.ssh" do
+#
+# set up authorized_keys so that clients can ssh in to talk to ossec-authd
+#
+template "#{node['ossec']['user']['dir']}/.ssh/authorized_keys" do
+  source "authorized_keys.erb"
   owner "root"
   group "ossec"
-  mode 0750
+  mode 0640
+  variables(:key => ossec_key['pubkey'])
 end
 
-template "#{node['ossec']['user']['dir']}/.ssh/id_rsa" do
-  source "ssh_key.erb"
+#
+# Create SSL key and cert for ossec-authd
+#
+execute "openssl genrsa -out /var/ossec/etc/sslmanager.key 2048" do
+  not_if { File.exists? "/var/ossec/etc/sslmanager.key" }
+end
+
+execute "openssl req -new -x509 -key /var/ossec/etc/sslmanager.key -out /var/ossec/etc/sslmanager.cert -days 3650 -subj /C=US/ST=CA/L=LA/O=ossec/CN=www.example.com" do
+  not_if { File.exists? "/var/ossec/etc/sslmanager.cert" }
+end
+
+#
+# Add an init.d script for ossec-authd
+#
+template "/etc/init.d/ossec-authd" do
+  source "ossec-authd-init.erb"
   owner "root"
-  group "ossec"
-  mode 0600
-  variables(:key => ossec_key['privkey'])
+  mode 0700
 end
 
-cron "distribute-ossec-keys" do
-  minute "0"
-  command "/usr/local/bin/dist-ossec-keys.sh"
-  only_if { ::File.exists?("#{node['ossec']['user']['dir']}/etc/client.keys") }
-end
+include_recipe "ossec::service"

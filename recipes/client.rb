@@ -19,12 +19,15 @@
 
 ossec_server = Array.new
 
-if node.run_list.roles.include?(node['ossec']['server_role'])
-  ossec_server << node['ipaddress']
-else
-  search(:node,"role:#{node['ossec']['server_role']}") do |n|
-    ossec_server << n['ipaddress']
-  end
+#
+# for backward comaptibility with server_role
+#
+if node['ossec']['server_role']
+  node.default['ossec']['server_search'] = "role:#{node['ossec']['server_role']}"
+end
+
+search(:node, node['ossec']['server_search']) do |n|
+  ossec_server << n['ipaddress']
 end
 
 node.set['ossec']['user']['install_type'] = "agent"
@@ -34,32 +37,25 @@ node.save
 
 include_recipe "ossec"
 
-ossec_key = data_bag_item("ossec", "ssh")
+#
+# register with server
+#
+# ossec-authd doesn't include any type of client authentication, and the docs recommend only
+# starting it when adding new clients. That sounds tedious. Instead we will use ssh as the authentication
+# layer and only allow access from localhost.
+#
+# FIXME how do we add a firewall rule for this in a sane way?
+#
+bash "register with ossec server" do
+  user "root"
+  cwd  "/var/ossec"
+  code <<-EOH
+    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -N -T -L1515:127.0.0.1:1515 -i .ssh/id_rsa ossecd@#{node['ossec']['user']['agent_server_ip']} &
+    sleep 5
+    bin/agent-auth -m 127.0.0.1 && pkill -f -- '-L1515:127.0.0.1:1515'
+  EOH
 
-user "ossecd" do
-  comment "OSSEC Distributor"
-  shell "/bin/bash"
-  system true
-  gid "ossec"
-  home node['ossec']['user']['dir']
+  not_if { File.exists? "/var/ossec/etc/client.keys" }
 end
 
-directory "#{node['ossec']['user']['dir']}/.ssh" do
-  owner "ossecd"
-  group "ossec"
-  mode 0750
-end
-
-template "#{node['ossec']['user']['dir']}/.ssh/authorized_keys" do
-  source "ssh_key.erb"
-  owner "ossecd"
-  group "ossec"
-  mode 0600
-  variables(:key => ossec_key['pubkey'])
-end
-
-file "#{node['ossec']['user']['dir']}/etc/client.keys" do
-  owner "ossecd"
-  group "ossec"
-  mode 0660
-end
+include_recipe "ossec::service"
