@@ -50,6 +50,7 @@
     <include>vmpop3d_rules.xml</include>
     <include>courier_rules.xml</include>
     <include>web_rules.xml</include>
+    <include>web_appsec_rules.xml</include>
     <include>apache_rules.xml</include>
     <include>nginx_rules.xml</include>
     <include>php_rules.xml</include>
@@ -82,17 +83,23 @@
     <include>asterisk_rules.xml</include>
     <include>ossec_rules.xml</include>
     <include>attack_rules.xml</include>
+    <include>openbsd_rules.xml</include>
+    <include>clam_av_rules.xml</include>
+    <include>bro-ids_rules.xml</include>
+    <include>dropbear_rules.xml</include>
     <include>local_rules.xml</include>
-  </rules>  
+  </rules>
+
 
   <% if @ossec['syscheck'] -%>
   <syscheck>
     <!-- Frequency that syscheck is executed - default to every 22 hours -->
     <frequency><%= node['ossec']['syscheck_freq'] %></frequency>
-    
+
     <!-- Directories to check  (perform all possible verifications) -->
     <directories check_all="yes">/etc,/usr/bin,/usr/sbin</directories>
     <directories check_all="yes">/bin,/sbin</directories>
+    <directories check_all="yes">/usr/local/bin,/usr/local/sbin</directories>
 
     <!-- Files/directories to ignore -->
     <ignore>/etc/mtab</ignore>
@@ -108,20 +115,6 @@
     <ignore>/etc/dumpdates</ignore>
     <ignore>/etc/svc/volatile</ignore>
 
-    <!-- Windows files to ignore -->
-    <ignore>C:\WINDOWS/System32/LogFiles</ignore>
-    <ignore>C:\WINDOWS/Debug</ignore>
-    <ignore>C:\WINDOWS/WindowsUpdate.log</ignore>
-    <ignore>C:\WINDOWS/iis6.log</ignore>
-    <ignore>C:\WINDOWS/system32/wbem/Logs</ignore>
-    <ignore>C:\WINDOWS/system32/wbem/Repository</ignore>
-    <ignore>C:\WINDOWS/Prefetch</ignore>
-    <ignore>C:\WINDOWS/PCHEALTH/HELPCTR/DataColl</ignore>
-    <ignore>C:\WINDOWS/SoftwareDistribution</ignore>
-    <ignore>C:\WINDOWS/Temp</ignore>
-    <ignore>C:\WINDOWS/system32/config</ignore>
-    <ignore>C:\WINDOWS/system32/spool</ignore>
-    <ignore>C:\WINDOWS/system32/CatRoot</ignore>
   </syscheck>
 
 <% end -%>
@@ -146,21 +139,21 @@
     <executable>host-deny.sh</executable>
     <expect>srcip</expect>
     <timeout_allowed>yes</timeout_allowed>
-  </command>  
+  </command>
 
   <command>
     <name>firewall-drop</name>
     <executable>firewall-drop.sh</executable>
     <expect>srcip</expect>
     <timeout_allowed>yes</timeout_allowed>
-  </command>  
+  </command>
 
   <command>
     <name>disable-account</name>
     <executable>disable-account.sh</executable>
     <expect>user</expect>
     <timeout_allowed>yes</timeout_allowed>
-  </command>  
+  </command>
 
   <command>
     <name>restart-ossec</name>

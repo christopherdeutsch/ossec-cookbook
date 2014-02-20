@@ -1,3 +1,10 @@
+## v1.1.0
+
+### Improvement
+
+- rework client authentication to use ossec-authd
+- update OSSEC to version 2.7.1
+
 ## v1.0.4
 
 ### Bug
